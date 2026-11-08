@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from database import Base, SessionLocal, engine
-from models import Lead, HandoffRequest, User
+from models import Lead
 from data.store import normalize_project
 
 from api.leads import router as leads_router
@@ -20,11 +20,58 @@ from api.properties import router as properties_router
 from api.analytics import router as analytics_router
 from api.tracking import router as tracking_router
 
+
 # ============================================================
 # ENVIRONMENT CONFIGURATION
 # ============================================================
 
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://estate-ai-blush.vercel.app",
+).strip().rstrip("/")
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
+app = FastAPI(
+    title="EstateMate AI",
+    description=(
+        "AI-powered real estate lead management, "
+        "property discovery, and site-visit booking"
+    ),
+    version="1.2.0",
+)
+
+
+# ============================================================
+# CORS CONFIGURATION
+# ============================================================
+
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "https://estate-ai-blush.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Remove duplicate origins and empty values.
+ALLOWED_ORIGINS = list(
+    dict.fromkeys(
+        origin for origin in ALLOWED_ORIGINS if origin
+    )
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ============================================================
@@ -103,38 +150,16 @@ def initialize_database():
         db.commit()
 
 
-# Initialize database before serving requests.
-initialize_database()
-
-
 # ============================================================
-# FASTAPI APPLICATION
+# APPLICATION STARTUP
 # ============================================================
 
-app = FastAPI(
-    title="EstateMate AI",
-    description=(
-        "AI-powered real estate lead management, "
-        "property discovery, and site-visit booking"
-    ),
-    version="1.2.0",
-)
-
-
-# ============================================================
-# CORS CONFIGURATION
-# ============================================================
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.on_event("startup")
+def startup_event():
+    """
+    Initialize the database when the application starts.
+    """
+    initialize_database()
 
 
 # ============================================================
