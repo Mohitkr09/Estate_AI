@@ -8,8 +8,12 @@ import axios from "axios";
 const TOKEN_KEY = "estatemate_access_token";
 const USER_KEY = "estatemate_user";
 
+// Vercel: configure VITE_API_BASE_URL in Environment Variables.
+// Local development: falls back to your local FastAPI server.
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
 export const api = axios.create({
@@ -19,6 +23,8 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+console.info("EstateMate API configured:", API_BASE_URL);
 
 // ==================================================
 // CONSTANTS
@@ -31,22 +37,16 @@ export const BHK_OPTIONS = [
   "4 BHK",
 ];
 
-const VALID_AVAILABILITY = [
-  "available",
-  "reserved",
-  "sold",
-  "unavailable",
-];
-
 const MAX_BUDGET_INR = 1_000_000_000;
 
 // ==================================================
 // REQUEST INTERCEPTOR
+// Adds the access token to authenticated requests.
 // ==================================================
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
 
     if (token) {
       config.headers = config.headers || {};
@@ -60,6 +60,7 @@ api.interceptors.request.use(
 
 // ==================================================
 // RESPONSE INTERCEPTOR
+// Handles expired or invalid authentication.
 // ==================================================
 
 api.interceptors.response.use(
@@ -67,15 +68,19 @@ api.interceptors.response.use(
   (error) => {
     const statusCode = error.response?.status;
     const requestUrl = error.config?.url || "";
+
     const isLoginRequest = requestUrl.includes(
       "/api/auth/login"
     );
 
+    // Do not redirect when login itself fails.
     if (statusCode === 401 && !isLoginRequest) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      logout();
 
-      if (window.location.pathname !== "/login") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
         window.location.assign("/login");
       }
     }
@@ -86,12 +91,12 @@ api.interceptors.response.use(
 
 // ==================================================
 // LOGIN
+// POST /api/auth/login
 // ==================================================
 
 export async function login(username, password) {
   try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    logout();
 
     const response = await api.post("/api/auth/login", {
       username: username.trim().toLowerCase(),
@@ -107,10 +112,12 @@ export async function login(username, password) {
       );
     }
 
+    // Store the token before requesting the user profile.
     localStorage.setItem(TOKEN_KEY, token);
 
     let user = data.user ?? null;
 
+    // Support APIs that return user fields at the top level.
     if (!user && data.username && data.role) {
       user = {
         id: data.id,
@@ -120,9 +127,13 @@ export async function login(username, password) {
       };
     }
 
+    // If the login response omits the user, request the profile.
     if (!user) {
       const profileResponse = await api.get("/api/auth/me");
-      user = profileResponse.data?.user ?? profileResponse.data;
+
+      user =
+        profileResponse.data?.user ??
+        profileResponse.data;
     }
 
     if (!user || !user.username || !user.role) {
@@ -131,16 +142,21 @@ export async function login(username, password) {
       );
     }
 
-    if (user.is_active === false || user.active === false) {
+    if (
+      user.is_active === false ||
+      user.active === false
+    ) {
       throw new Error("This account is inactive.");
     }
 
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify(user)
+    );
 
     return user;
   } catch (error) {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    logout();
 
     if (error.response) {
       const detail = error.response.data?.detail;
@@ -160,17 +176,23 @@ export async function login(username, password) {
 
 // ==================================================
 // CURRENT USER
+// GET /api/auth/me
 // ==================================================
 
 export async function getCurrentUser() {
   const token = getStoredToken();
 
   if (!token) {
-    throw new Error("No access token found. Please log in.");
+    throw new Error(
+      "No access token found. Please log in."
+    );
   }
 
   const response = await api.get("/api/auth/me");
-  const user = response.data?.user ?? response.data;
+
+  const user =
+    response.data?.user ??
+    response.data;
 
   if (!user?.username || !user?.role) {
     throw new Error(
@@ -178,12 +200,18 @@ export async function getCurrentUser() {
     );
   }
 
-  if (user.is_active === false || user.active === false) {
+  if (
+    user.is_active === false ||
+    user.active === false
+  ) {
     logout();
     throw new Error("This account is inactive.");
   }
 
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(
+    USER_KEY,
+    JSON.stringify(user)
+  );
 
   return user;
 }
@@ -200,7 +228,9 @@ export function getStoredUser() {
   try {
     const storedUser = localStorage.getItem(USER_KEY);
 
-    if (!storedUser) return null;
+    if (!storedUser) {
+      return null;
+    }
 
     const user = JSON.parse(storedUser);
 
@@ -228,17 +258,22 @@ export function logout() {
 // ==================================================
 
 export function isAuthenticated() {
-  return Boolean(getStoredToken() && getStoredUser());
+  return Boolean(
+    getStoredToken() && getStoredUser()
+  );
 }
 
 export function hasRole(...allowedRoles) {
   const user = getStoredUser();
 
-  if (!user?.role) return false;
+  if (!user?.role) {
+    return false;
+  }
 
   return allowedRoles.some(
     (role) =>
-      role.toLowerCase() === user.role.toLowerCase()
+      role.toLowerCase() ===
+      user.role.toLowerCase()
   );
 }
 
@@ -247,7 +282,11 @@ export function hasRole(...allowedRoles) {
 // ==================================================
 
 function parseBudget(value, label) {
-  if (value === undefined || value === null || value === "") {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
     return undefined;
   }
 
@@ -258,7 +297,9 @@ function parseBudget(value, label) {
     number <= 0 ||
     number > MAX_BUDGET_INR
   ) {
-    throw new Error(`Please enter a valid ${label}.`);
+    throw new Error(
+      `Please enter a valid ${label}.`
+    );
   }
 
   return number;
@@ -319,21 +360,23 @@ function validatePropertyFilters(filters = {}) {
 // PUBLIC PROPERTY SEARCH
 // GET /api/properties
 //
-// Returns verified projects and verified properties
-// according to the backend's public search rules.
+// Returns properties according to backend public
+// verification and availability rules.
 // ==================================================
 
 export async function searchProperties(filters = {}) {
   const params = validatePropertyFilters(filters);
 
-  // Public discovery requests only available properties.
+  // Public discovery only requests available properties.
   params.availability = "available";
 
   if (Array.isArray(filters.amenities)) {
     const amenities = [
       ...new Set(
         filters.amenities
-          .filter((item) => typeof item === "string")
+          .filter(
+            (item) => typeof item === "string"
+          )
           .map((item) => item.trim())
           .filter(Boolean)
       ),
@@ -365,9 +408,10 @@ export async function searchProperties(filters = {}) {
 
   params.limit = limit;
 
-  const response = await api.get("/api/properties", {
-    params,
-  });
+  const response = await api.get(
+    "/api/properties",
+    { params }
+  );
 
   return Array.isArray(response.data)
     ? response.data
@@ -378,21 +422,20 @@ export async function searchProperties(filters = {}) {
 // DEVELOPMENT PROPERTY PREVIEW
 // GET /api/dev/properties
 //
-// Intended for local development only.
-// Returns fictional development sample listings,
-// including pending listings, through a separate API.
-// Does not change public property search.
-//
-// Supported filters:
-// bhk, location, min_budget_inr, max_budget_inr
+// For development samples only.
+// Keep pending or fictional listings separate from
+// verified public property listings.
 // ==================================================
 
-export async function getDevelopmentProperties(filters = {}) {
+export async function getDevelopmentProperties(
+  filters = {}
+) {
   const params = validatePropertyFilters(filters);
 
-  const response = await api.get("/api/dev/properties", {
-    params,
-  });
+  const response = await api.get(
+    "/api/dev/properties",
+    { params }
+  );
 
   return Array.isArray(response.data)
     ? response.data
@@ -433,7 +476,9 @@ export async function getPropertyRecommendations({
       ? [
           ...new Set(
             amenities
-              .filter((item) => typeof item === "string")
+              .filter(
+                (item) => typeof item === "string"
+              )
               .map((item) => item.trim())
               .filter(Boolean)
           ),
@@ -476,11 +521,13 @@ export async function getAdminProjects() {
 // ADMIN: LIST ALL PROPERTY INVENTORY
 // GET /api/properties/admin/listings
 //
-// Requires an authorized administrator.
-// Do not expose this endpoint as a public preview API.
+// Requires administrator authorization.
+// Never expose this endpoint as a public preview API.
 // ==================================================
 
-export async function getAdminProperties(projectId = null) {
+export async function getAdminProperties(
+  projectId = null
+) {
   const params = {};
 
   if (projectId) {
@@ -509,19 +556,35 @@ export function getApiErrorMessage(error) {
       return detail;
     }
 
-    return `Request failed with status ${error.response.status}.`;
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => item.msg || "Invalid input")
+        .join(", ");
+    }
+
+    return (
+      `Request failed with status ` +
+      `${error.response.status}.`
+    );
   }
 
   if (error.code === "ECONNABORTED") {
     return "The request timed out. Please try again.";
   }
 
-  if (error.code === "ERR_NETWORK") {
+  if (
+    error.code === "ERR_NETWORK" ||
+    !error.response
+  ) {
     return (
       "Cannot connect to the backend. " +
-      "Make sure FastAPI is running."
+      "Check your internet connection, backend URL, " +
+      "and server CORS configuration."
     );
   }
 
-  return error.message || "An unexpected error occurred.";
+  return (
+    error.message ||
+    "An unexpected error occurred."
+  );
 }
