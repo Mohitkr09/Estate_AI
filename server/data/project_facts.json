@@ -1,0 +1,24 @@
+
+{
+  "company": {
+    "location": "Ahmedabad, Gujarat, India",
+    "live_project_count": 2,
+    "total_apartments": 420
+  },
+  "property_options": ["2 BHK", "3 BHK"],
+  "overall_price_range": {
+    "minimum_inr": 6500000,
+    "maximum_inr": 12000000,
+    "display": "₹65 lakh to ₹1.2 crore"
+  },
+  "rules": {
+    "quote_final_price": false,
+    "quote_discounts": false,
+    "invent_amenities": false,
+    "invent_rera_registration_numbers": false,
+    "invent_possession_dates": false,
+    "invent_addresses": false,
+    "invent_available_visit_slots": false
+  },
+  "missing_information_policy": "Tell the buyer that a sales executive will confirm details that are not included in this approved fact sheet. Offer a human handoff."
+}
