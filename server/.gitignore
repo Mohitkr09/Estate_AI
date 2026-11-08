@@ -1,1 +1,21 @@
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+!.env.production.example
+
+# Frontend dependencies and build output
+client/node_modules/
+client/dist/
+
+# Python virtual environments and cache
+server/.venv/
+server/venv/
+server/__pycache__/
+server/**/__pycache__/
+*.py[cod]
+
+# Local tooling
+.vscode/
+.idea/
+.DS_Store
