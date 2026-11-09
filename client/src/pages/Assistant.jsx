@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Bot,
@@ -573,8 +572,8 @@ export default function Assistant() {
         : "border-slate-200 bg-slate-50 text-slate-700";
 
   return (
-    <main className="min-h-screen bg-[#f4f7f4] px-3 py-4 text-slate-800 sm:px-6 sm:py-7 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-emerald-50/60 px-3 py-5 text-slate-800 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1440px]">
         {/* Page heading */}
         <div className="mb-5 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
@@ -618,7 +617,7 @@ export default function Assistant() {
         </div>
 
         {/* Hero banner */}
-        <section className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-[#123f2b] via-[#176b45] to-[#238253] p-5 text-white shadow-xl shadow-emerald-950/10 sm:mb-7 sm:p-8 lg:p-9">
+        <section className="relative mb-6 overflow-hidden rounded-2xl border border-emerald-700/20 bg-gradient-to-br from-[#103d2b] via-[#176b45] to-[#218653] p-5 text-white shadow-xl shadow-emerald-950/10 sm:mb-8 sm:rounded-3xl sm:p-8 lg:p-10">
           <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full border border-white/10" />
           <div className="pointer-events-none absolute -right-2 -top-7 h-44 w-44 rounded-full border border-white/10" />
 
@@ -629,7 +628,7 @@ export default function Assistant() {
                 AI-powered property discovery
               </span>
 
-              <h2 className="mt-4 max-w-xl text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl lg:text-4xl">
+              <h2 className="mt-4 max-w-xl text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                 {copy.introTitle}
               </h2>
 
@@ -662,9 +661,9 @@ export default function Assistant() {
         </section>
 
         {/* Main layout */}
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] lg:gap-7">
+        <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:gap-7">
           {/* Conversation panel */}
-          <section className="flex min-h-[620px] flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm lg:min-h-[740px]">
+          <section className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg shadow-slate-900/[0.04] sm:min-h-[650px] sm:rounded-3xl lg:min-h-[740px]">
             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
@@ -705,7 +704,7 @@ export default function Assistant() {
 
             {/* Messages */}
             <div
-              className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
+              className="flex min-h-[240px] flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-3 py-5 sm:min-h-[300px] sm:px-6 sm:py-6"
               aria-live="polite"
               aria-label="Conversation messages"
             >
@@ -834,7 +833,7 @@ export default function Assistant() {
                 placeholder={copy.placeholder}
                 maxLength={2000}
                 disabled={loading}
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:opacity-60"
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 text-sm outline-none transition duration-200 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
               />
               <button
                 type="submit"
@@ -853,8 +852,8 @@ export default function Assistant() {
           </section>
 
           {/* Property tools */}
-          <aside className="space-y-5">
-            <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+          <aside className="min-w-0 space-y-5 lg:sticky lg:top-6">
+            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg shadow-slate-900/[0.04] sm:rounded-3xl">
               <div className="p-5 sm:p-6">
                 <SectionHeading
                   icon={Wallet}
@@ -883,7 +882,7 @@ export default function Assistant() {
                           setLeadError("");
                         }}
                         disabled={recommendationLoading}
-                        className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10"
+                        className="w-full min-w-0 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-800 outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <option value="2 BHK">2 BHK</option>
                         <option value="3 BHK">3 BHK</option>
@@ -924,7 +923,7 @@ export default function Assistant() {
                         }}
                         disabled={recommendationLoading}
                         placeholder="90"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-9 pr-4 text-sm font-semibold outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10"
+                        className="w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-9 pr-4 text-sm font-semibold outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     </div>
                     <p className="mt-2 text-xs leading-5 text-slate-400">
@@ -993,7 +992,7 @@ export default function Assistant() {
                       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
                         {copy.priceRange}
                       </p>
-                      <p className="mt-2 text-xl font-extrabold tracking-tight text-emerald-800">
+                      <p className="mt-2 break-words text-lg font-extrabold tracking-tight text-emerald-800 sm:text-xl">
                         ₹{formatLakhs(recommendation.overall_price_minimum_inr)}
                         <span className="mx-1.5 text-sm font-medium text-slate-400">
                           –
@@ -1111,7 +1110,7 @@ export default function Assistant() {
                               setLeadError("");
                             }}
                             placeholder={copy.leadNamePlaceholder}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10"
+                            className="w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-60"
                           />
                         </div>
 
@@ -1144,7 +1143,7 @@ export default function Assistant() {
                                 setLeadError("");
                               }}
                               placeholder={copy.leadPhonePlaceholder}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10"
+                              className="w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-sm outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-60"
                             />
                           </div>
                         </div>
@@ -1230,7 +1229,7 @@ export default function Assistant() {
             </section>
 
             {/* Trust and information card */}
-            <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/70 p-5 shadow-sm sm:p-6">
+            <section className="rounded-2xl border border-emerald-100/80 bg-gradient-to-br from-white to-emerald-50/80 p-5 shadow-sm sm:rounded-3xl sm:p-6">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-800 shadow-sm ring-1 ring-emerald-100">
                   <ShieldCheck size={21} />
