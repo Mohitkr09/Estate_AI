@@ -21,7 +21,10 @@ import {
   LoaderCircle,
   AlertCircle,
   KeyRound,
+  MessageCircle,
+  Bot,
 } from "lucide-react";
+import AIAssistant from "./Assistant";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
@@ -243,6 +246,7 @@ export default function HomePage() {
   const [maxBudget, setMaxBudget] = useState("Any");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -252,7 +256,6 @@ export default function HomePage() {
       setError("");
 
       try {
-        // Public read-only property endpoint.
         const response = await fetch(`${API_BASE_URL}/api/properties`, {
           method: "GET",
           headers: {
@@ -862,6 +865,85 @@ export default function HomePage() {
           </Link>
         </div>
       </footer>
+
+      {/* Floating EstateMate AI Assistant */}
+      <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end sm:bottom-7 sm:right-7">
+        {isAssistantOpen && (
+          <div className="mb-4 flex w-[calc(100vw-2.5rem)] max-w-[370px] flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl shadow-emerald-950/20 animate-in slide-in-from-bottom-3 duration-300 sm:w-[370px]">
+            {/* Assistant header */}
+            <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-800 to-emerald-600 px-4 py-4 text-white">
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+                <Bot size={24} />
+                <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-emerald-700 bg-green-300" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="font-bold">EstateMate AI</h3>
+                <p className="mt-0.5 text-xs text-emerald-50">
+                  Your personal property assistant
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAssistantOpen(false)}
+                aria-label="Close AI assistant"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/15 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Reuse your existing Assistant.jsx */}
+            <div className="max-h-[65vh] min-h-[300px] overflow-y-auto bg-slate-50 sm:h-[430px]">
+              <AIAssistant />
+            </div>
+
+            <div className="border-t border-slate-100 bg-white px-3 py-2 text-center">
+              <p className="text-[10px] text-slate-400">
+                EstateMate AI · Property guidance at your fingertips
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Floating toggle button */}
+        <button
+          type="button"
+          onClick={() => setIsAssistantOpen((open) => !open)}
+          aria-label={
+            isAssistantOpen ? "Close AI assistant" : "Ask EstateMate AI"
+          }
+          aria-expanded={isAssistantOpen}
+          className="group relative flex items-center gap-3 rounded-full bg-gradient-to-r from-emerald-800 to-emerald-600 px-4 py-3.5 text-white shadow-xl shadow-emerald-900/30 transition duration-300 hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300"
+        >
+          {!isAssistantOpen && (
+            <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-emerald-500/30" />
+          )}
+
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+            {isAssistantOpen ? (
+              <X size={21} />
+            ) : (
+              <MessageCircle
+                size={22}
+                className="transition-transform duration-300 group-hover:scale-110"
+              />
+            )}
+          </span>
+
+          <span className="pr-1 text-left">
+            <span className="block text-sm font-bold">
+              {isAssistantOpen ? "Close assistant" : "Ask AI"}
+            </span>
+            {!isAssistantOpen && (
+              <span className="mt-0.5 block text-[11px] text-emerald-50">
+                Find your perfect property
+              </span>
+            )}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
