@@ -1,10 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { X, LoaderCircle, UserRoundPlus } from "lucide-react";
-
-const API_URL = (
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
-).replace(/\/$/, "");
+import { api, getApiErrorMessage } from "../services/api";
 
 const INITIAL_FORM = {
   name: "",
@@ -26,7 +23,14 @@ const SOURCES = [
   "Other",
 ];
 
-const CONFIGURATIONS = ["1 BHK", "2 BHK", "3 BHK", "4 BHK", "Villa", "Other"];
+const CONFIGURATIONS = [
+  "1 BHK",
+  "2 BHK",
+  "3 BHK",
+  "4 BHK",
+  "Villa",
+  "Other",
+];
 
 export default function AddLeadModal({
   onClose,
@@ -35,6 +39,7 @@ export default function AddLeadModal({
   onUpdated,
 }) {
   const isEditing = Boolean(lead);
+
   const [form, setForm] = useState(INITIAL_FORM);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,11 +63,16 @@ export default function AddLeadModal({
 
   useEffect(() => {
     function handleEscape(event) {
-      if (event.key === "Escape" && !loading) onClose();
+      if (event.key === "Escape" && !loading) {
+        onClose();
+      }
     }
 
     window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
   }, [onClose, loading]);
 
   function updateField(event) {
@@ -86,7 +96,9 @@ export default function AddLeadModal({
     }
 
     if (digits.length < 7 || digits.length > 15) {
-      setError("Enter a valid phone number containing 7–15 digits.");
+      setError(
+        "Enter a valid phone number containing 7–15 digits."
+      );
       return;
     }
 
@@ -98,7 +110,10 @@ export default function AddLeadModal({
     const budget =
       form.budget === "" ? null : Number(form.budget);
 
-    if (budget !== null && (!Number.isFinite(budget) || budget < 0)) {
+    if (
+      budget !== null &&
+      (!Number.isFinite(budget) || budget < 0)
+    ) {
       setError("Budget must be a valid non-negative number.");
       return;
     }
@@ -116,46 +131,43 @@ export default function AddLeadModal({
     setLoading(true);
 
     try {
-      const endpoint = isEditing
-        ? `${API_URL}/api/leads/${encodeURIComponent(lead.id)}`
-        : `${API_URL}/api/leads`;
+      let response;
 
-      const response = await fetch(endpoint, {
-        method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      if (isEditing) {
+        if (!lead?.id) {
+          throw new Error("Cannot update this lead because its ID is missing.");
+        }
 
-      const data = await response.json().catch(() => ({}));
+        response = await api.put(
+          `/api/leads/${encodeURIComponent(lead.id)}`,
+          payload
+        );
+      } else {
+        response = await api.post("/api/leads", payload);
+      }
 
-      if (!response.ok) {
-        const detail = data.detail || data.error;
+      const data = response.data;
+
+      if (data?.duplicate) {
         throw new Error(
-          typeof detail === "string"
-            ? detail
-            : "Unable to save the lead. Check the submitted information."
+          `This phone number already belongs to lead ${
+            data.existing_lead?.id || ""
+          }.`
         );
       }
 
       if (isEditing) {
         await onUpdated?.(data);
       } else {
-        if (data.duplicate) {
-          throw new Error(
-            `This phone number already belongs to lead ${
-              data.existing_lead?.id || ""
-            }.`
-          );
-        }
-
         await onCreated?.(data);
       }
 
       onClose();
     } catch (err) {
       setError(
-        err.message ||
-          "Unable to connect to the server. Please try again."
+        getApiErrorMessage(err) ||
+          err.message ||
+          "Unable to save the lead. Please try again."
       );
     } finally {
       setLoading(false);
@@ -166,7 +178,10 @@ export default function AddLeadModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !loading) {
+        if (
+          event.target === event.currentTarget &&
+          !loading
+        ) {
           onClose();
         }
       }}
@@ -190,6 +205,7 @@ export default function AddLeadModal({
               >
                 {isEditing ? "Edit lead" : "Add a new lead"}
               </h2>
+
               <p className="mt-1 text-sm text-slate-500">
                 {isEditing
                   ? "Update the buyer's information."
@@ -282,8 +298,12 @@ export default function AddLeadModal({
                 className={inputClass}
               >
                 <option value="">Not specified</option>
+
                 {CONFIGURATIONS.map((configuration) => (
-                  <option key={configuration} value={configuration}>
+                  <option
+                    key={configuration}
+                    value={configuration}
+                  >
                     {configuration}
                   </option>
                 ))}
@@ -312,9 +332,10 @@ export default function AddLeadModal({
               onChange={updateField}
               className="mt-1 h-4 w-4 accent-emerald-700"
             />
+
             <span className="text-sm leading-5 text-slate-600">
-              The buyer has consented to receive relevant property-related
-              communications.
+              The buyer has consented to receive relevant
+              property-related communications.
             </span>
           </label>
 
@@ -334,8 +355,12 @@ export default function AddLeadModal({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading && (
-                <LoaderCircle size={17} className="animate-spin" />
+                <LoaderCircle
+                  size={17}
+                  className="animate-spin"
+                />
               )}
+
               {loading
                 ? "Saving..."
                 : isEditing
@@ -355,6 +380,7 @@ function Field({ label, children }) {
       <span className="text-sm font-semibold text-slate-700">
         {label}
       </span>
+
       {children}
     </label>
   );

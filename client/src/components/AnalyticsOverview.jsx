@@ -14,11 +14,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { getStoredToken } from "../services/api";
-
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
-).replace(/\/+$/, "");
+import {
+  api,
+  getApiErrorMessage,
+} from "../services/api";
 
 const INITIAL_METRICS = {
   total_leads: 0,
@@ -39,60 +38,17 @@ const INITIAL_METRICS = {
   lead_conversion_rate_percent: 0,
 };
 
-function readAccessToken() {
-  const token = getStoredToken();
-
-  if (typeof token !== "string") {
-    return null;
-  }
-
-  // Avoid sending "Bearer Bearer <token>" if the helper
-  // already returns a prefixed token.
-  return token.replace(/^Bearer\s+/i, "").trim() || null;
-}
-
+/**
+ * Fetch analytics using the shared Axios instance.
+ *
+ * The shared API client:
+ * - Uses VITE_API_BASE_URL.
+ * - Adds the stored bearer token.
+ * - Handles authentication failures.
+ */
 async function fetchAnalytics() {
-  const token = readAccessToken();
-
-  if (!token) {
-    throw new Error(
-      "No access token found. Please sign in again. If this persists, check getStoredToken() in services/api.js."
-    );
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/analytics/overview`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (response.status === 401) {
-    throw new Error(
-      "Authentication failed. Your session may have expired. Please sign in again."
-    );
-  }
-
-  if (response.status === 403) {
-    throw new Error(
-      "Your account does not have permission to view these analytics."
-    );
-  }
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-
-    throw new Error(
-      body.detail ||
-        `Analytics request failed with status ${response.status}.`
-    );
-  }
-
-  return response.json();
+  const response = await api.get("/api/analytics/overview");
+  return response.data;
 }
 
 function formatNumber(value) {
@@ -119,7 +75,11 @@ function formatResponseTime(minutes) {
     return "—";
   }
 
-  const totalMinutes = Math.max(0, Math.round(Number(minutes)));
+  const totalMinutes = Math.max(
+    0,
+    Math.round(Number(minutes))
+  );
+
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const mins = totalMinutes % 60;
@@ -238,7 +198,10 @@ export default function AnalyticsOverview() {
 
       setData(result);
     } catch (err) {
-      setError(err.message || "Unable to load analytics.");
+      setError(
+        getApiErrorMessage(err) ||
+          "Unable to load analytics."
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -298,11 +261,15 @@ export default function AnalyticsOverview() {
   }
 
   const leadTotal = Number(metrics.total_leads) || 0;
+
   const visitTotal =
     Number(metrics.visits_with_known_attendance) || 0;
 
-  const cancelledVisits = Number(metrics.cancelled_visits) || 0;
-  const bookedVisits = Number(metrics.booked_visits) || 0;
+  const cancelledVisits =
+    Number(metrics.cancelled_visits) || 0;
+
+  const bookedVisits =
+    Number(metrics.booked_visits) || 0;
 
   return (
     <section className="space-y-6">
@@ -339,7 +306,10 @@ export default function AnalyticsOverview() {
 
       {/* Refresh warning */}
       {error && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
           Refresh failed: {error}. Showing the last successfully loaded data.
         </div>
       )}
@@ -441,7 +411,9 @@ export default function AnalyticsOverview() {
               </p>
 
               <p className="mt-1 text-xl font-bold text-slate-900">
-                {formatNumber(metrics.lead_conversion_rate_percent)}%
+                {formatNumber(
+                  metrics.lead_conversion_rate_percent
+                )}%
               </p>
             </div>
 
@@ -578,7 +550,8 @@ export default function AnalyticsOverview() {
       {/* Data quality and access scope */}
       <footer className="flex flex-col gap-1 border-t border-slate-200 pt-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <span>
-          Access scope: <strong>{data?.scope || "unknown"}</strong>
+          Access scope:{" "}
+          <strong>{data?.scope || "unknown"}</strong>
         </span>
 
         <span>

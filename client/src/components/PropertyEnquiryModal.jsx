@@ -21,7 +21,7 @@ export default function PropertyEnquiryModal({
     property.project_name || "Residential property";
 
   const propertyId =
-    property.property_id || property.id || "";
+    property.property_id ?? property.id ?? null;
 
   const updateField = (event) => {
     const { name, value, checked, type } = event.target;
@@ -30,10 +30,15 @@ export default function PropertyEnquiryModal({
       ...current,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    if (error) setError("");
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (submitting) return;
+
     setError("");
 
     const name = form.name.trim();
@@ -44,11 +49,13 @@ export default function PropertyEnquiryModal({
       return;
     }
 
-    // Accept common Indian phone formats.
+    // Normalize common Indian phone-number formats.
     const normalizedPhone = phone.replace(/[\s()-]/g, "");
 
     if (!/^(?:\+91)?[6-9]\d{9}$/.test(normalizedPhone)) {
-      setError("Enter a valid 10-digit Indian mobile number.");
+      setError(
+        "Enter a valid 10-digit Indian mobile number, optionally with the +91 prefix."
+      );
       return;
     }
 
@@ -60,7 +67,7 @@ export default function PropertyEnquiryModal({
     setSubmitting(true);
 
     try {
-      const response = await api.post("/api/leads", {
+      const payload = {
         name,
         phone: normalizedPhone,
         source: "property_enquiry",
@@ -71,11 +78,24 @@ export default function PropertyEnquiryModal({
             ? Number(property.price_inr)
             : null,
         consent: true,
-      });
+      };
 
-      onSuccess?.(response.data);
+      // Include the property identifier when one is available.
+      if (propertyId != null && propertyId !== "") {
+        payload.property_id = propertyId;
+      }
+
+      const response = await api.post("/api/leads", payload);
+
+      if (typeof onSuccess === "function") {
+        onSuccess(response.data);
+      }
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      console.error("Property enquiry submission failed:", err);
+      setError(
+        getApiErrorMessage(err) ||
+          "Unable to submit your enquiry. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -85,8 +105,11 @@ export default function PropertyEnquiryModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !submitting) {
-          onClose();
+        if (
+          event.target === event.currentTarget &&
+          !submitting
+        ) {
+          onClose?.();
         }
       }}
     >
@@ -96,6 +119,7 @@ export default function PropertyEnquiryModal({
         aria-labelledby="property-enquiry-title"
         className="my-auto w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
+        {/* Modal header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 to-emerald-800 px-6 py-6 text-white sm:px-8">
           <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
 
@@ -122,14 +146,19 @@ export default function PropertyEnquiryModal({
               onClick={onClose}
               disabled={submitting}
               aria-label="Close enquiry form"
-              className="rounded-lg p-2 text-xl text-white transition hover:bg-white/10 disabled:opacity-50"
+              className="rounded-lg p-2 text-xl text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               ×
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
+        {/* Enquiry form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 p-6 sm:p-8"
+        >
+          {/* Selected property */}
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
               Selected property
@@ -154,18 +183,20 @@ export default function PropertyEnquiryModal({
 
               {property.price_inr != null && (
                 <span className="rounded-md bg-white px-2.5 py-1.5 font-semibold text-emerald-800">
-                  ₹{Number(property.price_inr).toLocaleString("en-IN")}
+                  ₹
+                  {Number(property.price_inr).toLocaleString("en-IN")}
                 </span>
               )}
             </div>
 
-            {propertyId && (
+            {propertyId != null && propertyId !== "" && (
               <p className="mt-2 break-all text-xs text-slate-400">
                 Property ID: {propertyId}
               </p>
             )}
           </div>
 
+          {/* Full name */}
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-slate-700">
               Full name <span className="text-red-500">*</span>
@@ -176,6 +207,7 @@ export default function PropertyEnquiryModal({
               type="text"
               autoComplete="name"
               maxLength={100}
+              minLength={2}
               required
               value={form.name}
               onChange={updateField}
@@ -184,6 +216,7 @@ export default function PropertyEnquiryModal({
             />
           </label>
 
+          {/* Mobile number */}
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-slate-700">
               Mobile number <span className="text-red-500">*</span>
@@ -194,7 +227,7 @@ export default function PropertyEnquiryModal({
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              maxLength={16}
+              maxLength={20}
               required
               value={form.phone}
               onChange={updateField}
@@ -207,6 +240,7 @@ export default function PropertyEnquiryModal({
             </span>
           </label>
 
+          {/* Consent */}
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
             <input
               type="checkbox"
@@ -225,21 +259,24 @@ export default function PropertyEnquiryModal({
             </span>
           </label>
 
+          {/* Error message */}
           {error && (
             <div
               role="alert"
+              aria-live="polite"
               className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
             >
               {error}
             </div>
           )}
 
+          {/* Actions */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="min-h-12 flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="min-h-12 flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
