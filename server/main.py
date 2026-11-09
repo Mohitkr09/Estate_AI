@@ -19,7 +19,7 @@ from api.recommendations import router as recommendations_router
 from api.properties import router as properties_router
 from api.analytics import router as analytics_router
 from api.tracking import router as tracking_router
-
+from api.public_enquiries import router as public_enquiries_router
 
 # ============================================================
 # ENVIRONMENT CONFIGURATION
@@ -175,6 +175,7 @@ app.include_router(recommendations_router)
 app.include_router(properties_router)
 app.include_router(analytics_router)
 app.include_router(tracking_router)
+app.include_router(public_enquiries_router)
 
 
 # ============================================================

@@ -262,6 +262,8 @@ function PropertyDetails() {
   };
 
   /* Submit enquiry using the existing backend endpoint. */
+  
+  /* Submit a public property enquiry. */
   const submitEnquiry = async (event) => {
     event.preventDefault();
 
@@ -273,27 +275,69 @@ function PropertyDetails() {
       return;
     }
 
+    const name = enquiry.name.trim();
+    const email = enquiry.email.trim();
+    const phone = enquiry.phone.trim();
+    const message = enquiry.message.trim();
+
+    if (name.length < 2) {
+      setEnquiryError("Please enter your full name.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEnquiryError("Please enter a valid email address.");
+      return;
+    }
+
+    const phoneDigits = phone.replace(/\D/g, "");
+
+    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+      setEnquiryError(
+        "Please enter a valid phone number containing 7–15 digits."
+      );
+      return;
+    }
+
+    const propertyTitle =
+      property.title ||
+      property.property_name ||
+      property.name ||
+      "Property enquiry";
+
     setSubmitting(true);
 
     try {
       const payload = {
-        property_id: getPropertyId(property) ?? propertyId,
-        property_title:
-          property.title ||
-          property.name ||
-          property.property_name ||
-          "Property enquiry",
-        name: enquiry.name.trim(),
-        email: enquiry.email.trim(),
-        phone: enquiry.phone.trim(),
-        message: enquiry.message.trim(),
+        name,
+        email,
+        phone,
+        message:
+          message ||
+          `I would like to know more about ${propertyTitle}.`,
+        source: "Property Website",
+        project: propertyTitle,
+        property_id: String(
+          getPropertyId(property) ?? propertyId
+        ),
+        consent: true,
+        bhk:
+          property.bhk != null
+            ? String(property.bhk)
+            : property.bedrooms != null
+              ? String(property.bedrooms)
+              : undefined,
       };
 
-      // Confirm this endpoint and payload match your FastAPI backend.
-      await api.post("/api/enquiries", payload);
+      const response = await api.post(
+        "/api/public/enquiries",
+        payload
+      );
 
       setEnquirySuccess(
-        "Your enquiry has been submitted successfully. Our team will contact you soon."
+        response.data?.duplicate
+          ? "Your enquiry has been received. Our team can follow up on your request."
+          : "Your enquiry has been submitted successfully. Our team will contact you soon."
       );
 
       setEnquiry({
@@ -303,16 +347,40 @@ function PropertyDetails() {
         message: "",
       });
     } catch (err) {
-      console.error("Failed to submit enquiry:", err);
-
-      setEnquiryError(
-        getApiErrorMessage(err) ||
-          "Unable to submit your enquiry. Please try again."
+      console.error(
+        "Failed to submit property enquiry:",
+        err.response?.data || err
       );
+
+      const statusCode = err.response?.status;
+
+      if (statusCode === 404) {
+        setEnquiryError(
+          "The enquiry endpoint was not found. Please ensure the updated backend is deployed."
+        );
+      } else if (statusCode === 422) {
+        const detail = err.response?.data?.detail;
+
+        setEnquiryError(
+          typeof detail === "string"
+            ? detail
+            : "Please check your details and try again."
+        );
+      } else if (statusCode === 429) {
+        setEnquiryError(
+          "Too many enquiries have been submitted. Please wait and try again."
+        );
+      } else {
+        setEnquiryError(
+          getApiErrorMessage(err) ||
+            "Unable to submit your enquiry. Please try again."
+        );
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const title =
     property?.title ||
