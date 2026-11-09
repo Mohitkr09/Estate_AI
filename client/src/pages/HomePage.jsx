@@ -44,7 +44,10 @@ function formatPrice(value) {
     return "Price on request";
   }
 
-  if (typeof value === "string" && /₹|lakh|crore|cr\b|lac/i.test(value)) {
+  if (
+    typeof value === "string" &&
+    /₹|lakh|crore|cr\b|lac/i.test(value)
+  ) {
     return value;
   }
 
@@ -53,11 +56,15 @@ function formatPrice(value) {
   if (!Number.isFinite(amount)) return String(value);
 
   if (amount >= 10000000) {
-    return `₹${(amount / 10000000).toFixed(2).replace(/\.?0+$/, "")} Cr`;
+    return `₹${(amount / 10000000)
+      .toFixed(2)
+      .replace(/\.?0+$/, "")} Cr`;
   }
 
   if (amount >= 100000) {
-    return `₹${(amount / 100000).toFixed(2).replace(/\.?0+$/, "")} Lac`;
+    return `₹${(amount / 100000)
+      .toFixed(2)
+      .replace(/\.?0+$/, "")} Lac`;
   }
 
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -83,7 +90,8 @@ function getPropertyImage(property, index = 0) {
 
   return (
     images.find(
-      (image) => typeof image === "string" && image.trim().length > 0
+      (image) =>
+        typeof image === "string" && image.trim().length > 0
     ) ||
     propertyImages[index % propertyImages.length] ||
     FALLBACK_IMAGE
@@ -100,7 +108,12 @@ function normalizeProperties(payload) {
   return [];
 }
 
-function PropertyCard({ property, index, onFavorite, isFavorite }) {
+function PropertyCard({
+  property,
+  index,
+  onFavorite,
+  isFavorite,
+}) {
   const id = getPropertyId(property);
 
   const title =
@@ -117,14 +130,25 @@ function PropertyCard({ property, index, onFavorite, isFavorite }) {
     "Location available on request";
 
   const price = formatPrice(
-    property.price ?? property.listing_price ?? property.expected_price
+    property.price ??
+      property.listing_price ??
+      property.expected_price
   );
 
   const image = getPropertyImage(property, index);
 
-  const bedrooms = property.bedrooms ?? property.bhk ?? property.bedroom_count;
-  const bathrooms = property.bathrooms ?? property.bathroom_count;
-  const area = property.area ?? property.area_sqft ?? property.square_feet;
+  const bedrooms =
+    property.bedrooms ??
+    property.bhk ??
+    property.bedroom_count;
+
+  const bathrooms =
+    property.bathrooms ?? property.bathroom_count;
+
+  const area =
+    property.area ??
+    property.area_sqft ??
+    property.square_feet;
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/10">
@@ -148,7 +172,11 @@ function PropertyCard({ property, index, onFavorite, isFavorite }) {
         <button
           type="button"
           onClick={() => onFavorite(id)}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={
+            isFavorite
+              ? "Remove from favorites"
+              : "Add to favorites"
+          }
           aria-pressed={isFavorite}
           className={`absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full shadow-sm backdrop-blur transition ${
             isFavorite
@@ -156,7 +184,10 @@ function PropertyCard({ property, index, onFavorite, isFavorite }) {
               : "bg-white/95 text-slate-700 hover:bg-rose-50 hover:text-rose-500"
           }`}
         >
-          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+          <Heart
+            size={18}
+            fill={isFavorite ? "currentColor" : "none"}
+          />
         </button>
 
         {property.property_type && (
@@ -176,35 +207,51 @@ function PropertyCard({ property, index, onFavorite, isFavorite }) {
         </h3>
 
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
-          <MapPin size={15} className="shrink-0 text-emerald-600" />
+          <MapPin
+            size={15}
+            className="shrink-0 text-emerald-600"
+          />
           <span className="truncate">{location}</span>
         </p>
 
         <div className="my-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-slate-100 py-4 text-xs text-slate-500">
           {bedrooms !== undefined && bedrooms !== null && (
             <span className="flex items-center gap-1.5">
-              <BedDouble size={16} className="text-emerald-700" />
+              <BedDouble
+                size={16}
+                className="text-emerald-700"
+              />
               {bedrooms} Beds
             </span>
           )}
 
           {bathrooms !== undefined && bathrooms !== null && (
             <span className="flex items-center gap-1.5">
-              <Bath size={16} className="text-emerald-700" />
+              <Bath
+                size={16}
+                className="text-emerald-700"
+              />
               {bathrooms} Baths
             </span>
           )}
 
           {area !== undefined && area !== null && (
             <span className="flex items-center gap-1.5">
-              <Maximize2 size={15} className="text-emerald-700" />
+              <Maximize2
+                size={15}
+                className="text-emerald-700"
+              />
               {area} sq. ft.
             </span>
           )}
 
-          {bedrooms == null && bathrooms == null && area == null && (
-            <span>Contact us for property specifications</span>
-          )}
+          {bedrooms == null &&
+            bathrooms == null &&
+            area == null && (
+              <span>
+                Contact us for property specifications
+              </span>
+            )}
         </div>
 
         {id !== undefined && id !== null && (
@@ -221,15 +268,21 @@ function PropertyCard({ property, index, onFavorite, isFavorite }) {
   );
 }
 
-function SectionHeading({ eyebrow, title, description }) {
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+}) {
   return (
     <div className="max-w-2xl">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
         {eyebrow}
       </p>
+
       <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
         {title}
       </h2>
+
       <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
         {description}
       </p>
@@ -256,13 +309,16 @@ export default function HomePage() {
       setError("");
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/properties`, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/api/properties`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+            signal: controller.signal,
+          }
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -275,7 +331,11 @@ export default function HomePage() {
       } catch (err) {
         if (err.name === "AbortError") return;
 
-        console.error("Failed to load public properties:", err);
+        console.error(
+          "Failed to load public properties:",
+          err
+        );
+
         setError(
           "We couldn't load property listings right now. Please try again."
         );
@@ -294,7 +354,10 @@ export default function HomePage() {
   const propertyTypes = useMemo(() => {
     const types = properties
       .map((property) => property.property_type)
-      .filter((type) => typeof type === "string" && type.trim());
+      .filter(
+        (type) =>
+          typeof type === "string" && type.trim()
+      );
 
     return ["All", ...new Set(types)];
   }, [properties]);
@@ -320,7 +383,8 @@ export default function HomePage() {
       );
 
       const matchesType =
-        propertyType === "All" || property.property_type === propertyType;
+        propertyType === "All" ||
+        property.property_type === propertyType;
 
       const rawPrice =
         property.price ??
@@ -328,9 +392,11 @@ export default function HomePage() {
         property.expected_price;
 
       const numericPrice = Number(rawPrice);
+
       const matchesBudget =
         maxBudget === "Any" ||
-        (Number.isFinite(numericPrice) && numericPrice <= Number(maxBudget));
+        (Number.isFinite(numericPrice) &&
+          numericPrice <= Number(maxBudget));
 
       return matchesSearch && matchesType && matchesBudget;
     });
@@ -369,8 +435,10 @@ export default function HomePage() {
 
             <span>
               <span className="block text-lg font-extrabold tracking-tight text-slate-900">
-                EstateMate <span className="text-emerald-700">AI</span>
+                EstateMate{" "}
+                <span className="text-emerald-700">AI</span>
               </span>
+
               <span className="block text-[11px] text-slate-500">
                 Find your next home
               </span>
@@ -384,18 +452,21 @@ export default function HomePage() {
             >
               Home
             </a>
+
             <a
               href="#properties"
               className="text-sm font-medium text-slate-600 transition hover:text-emerald-700"
             >
               Properties
             </a>
+
             <a
               href="#why-us"
               className="text-sm font-medium text-slate-600 transition hover:text-emerald-700"
             >
               Why EstateMate
             </a>
+
             <a
               href="#contact"
               className="text-sm font-medium text-slate-600 transition hover:text-emerald-700"
@@ -411,6 +482,7 @@ export default function HomePage() {
             >
               Agent login
             </Link>
+
             <a
               href="#properties"
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
@@ -422,12 +494,20 @@ export default function HomePage() {
 
           <button
             type="button"
-            onClick={() => setMobileMenuOpen((open) => !open)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            onClick={() =>
+              setMobileMenuOpen((open) => !open)
+            }
+            aria-label={
+              mobileMenuOpen ? "Close menu" : "Open menu"
+            }
             aria-expanded={mobileMenuOpen}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 sm:hidden"
           >
-            {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
+            {mobileMenuOpen ? (
+              <X size={21} />
+            ) : (
+              <Menu size={21} />
+            )}
           </button>
         </div>
 
@@ -440,6 +520,7 @@ export default function HomePage() {
             >
               Home
             </a>
+
             <a
               href="#properties"
               onClick={() => setMobileMenuOpen(false)}
@@ -447,6 +528,7 @@ export default function HomePage() {
             >
               Properties
             </a>
+
             <a
               href="#why-us"
               onClick={() => setMobileMenuOpen(false)}
@@ -454,6 +536,7 @@ export default function HomePage() {
             >
               Why EstateMate
             </a>
+
             <a
               href="#contact"
               onClick={() => setMobileMenuOpen(false)}
@@ -461,6 +544,7 @@ export default function HomePage() {
             >
               Contact
             </a>
+
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
@@ -489,13 +573,15 @@ export default function HomePage() {
 
             <h1 className="mt-6 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
               Find a place you'll love to{" "}
-              <span className="text-emerald-700">call home.</span>
+              <span className="text-emerald-700">
+                call home.
+              </span>
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 sm:text-lg">
-              Discover properties that fit your lifestyle and budget. Explore
-              listings, compare your options, and connect with a real estate
-              professional.
+              Discover properties that fit your lifestyle and
+              budget. Explore listings, compare your options,
+              and connect with a real estate professional.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -519,11 +605,18 @@ export default function HomePage() {
 
             <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={17} className="text-emerald-700" />
+                <CheckCircle2
+                  size={17}
+                  className="text-emerald-700"
+                />
                 Easy property discovery
               </span>
+
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={17} className="text-emerald-700" />
+                <CheckCircle2
+                  size={17}
+                  className="text-emerald-700"
+                />
                 Direct enquiries
               </span>
             </div>
@@ -550,6 +643,7 @@ export default function HomePage() {
                     <p className="font-bold text-slate-900">
                       Your next chapter starts here
                     </p>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Explore available property listings
                     </p>
@@ -588,10 +682,16 @@ export default function HomePage() {
             className="grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
           >
             <label className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 px-3.5 py-3 focus-within:border-emerald-500">
-              <MapPin size={18} className="shrink-0 text-emerald-700" />
+              <MapPin
+                size={18}
+                className="shrink-0 text-emerald-700"
+              />
+
               <input
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) =>
+                  setSearchTerm(event.target.value)
+                }
                 placeholder="City, area or property name"
                 aria-label="Search by city, area or property name"
                 className="w-full min-w-0 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
@@ -600,20 +700,26 @@ export default function HomePage() {
 
             <select
               value={propertyType}
-              onChange={(event) => setPropertyType(event.target.value)}
+              onChange={(event) =>
+                setPropertyType(event.target.value)
+              }
               aria-label="Property type"
               className="rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 outline-none focus:border-emerald-500"
             >
               {propertyTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type === "All" ? "All property types" : type}
+                  {type === "All"
+                    ? "All property types"
+                    : type}
                 </option>
               ))}
             </select>
 
             <select
               value={maxBudget}
-              onChange={(event) => setMaxBudget(event.target.value)}
+              onChange={(event) =>
+                setMaxBudget(event.target.value)
+              }
               aria-label="Maximum budget"
               className="rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 outline-none focus:border-emerald-500"
             >
@@ -652,7 +758,9 @@ export default function HomePage() {
             {loading
               ? "Loading listings..."
               : `${filteredProperties.length} ${
-                  filteredProperties.length === 1 ? "property" : "properties"
+                  filteredProperties.length === 1
+                    ? "property"
+                    : "properties"
                 } found`}
           </p>
         </div>
@@ -665,6 +773,7 @@ export default function HomePage() {
                 className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
                 <div className="h-56 bg-slate-200" />
+
                 <div className="space-y-3 p-5">
                   <div className="h-5 w-1/3 rounded bg-slate-200" />
                   <div className="h-4 w-3/4 rounded bg-slate-200" />
@@ -678,11 +787,19 @@ export default function HomePage() {
 
         {!loading && error && (
           <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-            <AlertCircle size={30} className="mx-auto text-amber-700" />
+            <AlertCircle
+              size={30}
+              className="mx-auto text-amber-700"
+            />
+
             <h3 className="mt-3 font-bold text-slate-900">
               Listings are temporarily unavailable
             </h3>
-            <p className="mt-2 text-sm text-slate-600">{error}</p>
+
+            <p className="mt-2 text-sm text-slate-600">
+              {error}
+            </p>
+
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -695,13 +812,19 @@ export default function HomePage() {
 
         {!loading && !error && properties.length === 0 && (
           <div className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
-            <Building2 size={36} className="mx-auto text-emerald-700" />
+            <Building2
+              size={36}
+              className="mx-auto text-emerald-700"
+            />
+
             <h3 className="mt-4 text-lg font-bold text-slate-900">
               No properties published yet
             </h3>
+
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Property listings will appear here once they are available in
-              the database and exposed through the public properties API.
+              Property listings will appear here once they are
+              available in the database and exposed through the
+              public properties API.
             </p>
           </div>
         )}
@@ -716,19 +839,27 @@ export default function HomePage() {
                     property={property}
                     index={index}
                     onFavorite={toggleFavorite}
-                    isFavorite={favorites.includes(getPropertyId(property))}
+                    isFavorite={favorites.includes(
+                      getPropertyId(property)
+                    )}
                   />
                 ))}
               </div>
             ) : (
               <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-14 text-center">
-                <Search size={32} className="mx-auto text-slate-400" />
+                <Search
+                  size={32}
+                  className="mx-auto text-slate-400"
+                />
+
                 <h3 className="mt-4 font-bold text-slate-900">
                   No matching properties
                 </h3>
+
                 <p className="mt-2 text-sm text-slate-500">
                   Try another location, property type or budget.
                 </p>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -747,18 +878,24 @@ export default function HomePage() {
       </section>
 
       {/* Benefits */}
-      <section id="why-us" className="bg-[#f2f8f3] py-16 sm:py-20">
+      <section
+        id="why-us"
+        className="bg-[#f2f8f3] py-16 sm:py-20"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
               Why EstateMate AI
             </p>
+
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
               Property discovery, made simpler.
             </h2>
+
             <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
-              A straightforward way to explore listings and connect with the
-              people who can help you find your next property.
+              A straightforward way to explore listings and
+              connect with the people who can help you find your
+              next property.
             </p>
           </div>
 
@@ -767,12 +904,14 @@ export default function HomePage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
                 <Search size={23} />
               </div>
+
               <h3 className="mt-5 font-bold text-slate-900">
                 Easy property search
               </h3>
+
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Narrow down available listings by location, property type and
-                budget.
+                Narrow down available listings by location,
+                property type and budget.
               </p>
             </div>
 
@@ -780,12 +919,14 @@ export default function HomePage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
                 <ShieldCheck size={23} />
               </div>
+
               <h3 className="mt-5 font-bold text-slate-900">
                 Clear property details
               </h3>
+
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Review available listing information before deciding which
-                properties interest you.
+                Review available listing information before
+                deciding which properties interest you.
               </p>
             </div>
 
@@ -793,12 +934,14 @@ export default function HomePage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
                 <Phone size={23} />
               </div>
+
               <h3 className="mt-5 font-bold text-slate-900">
                 Connect with an agent
               </h3>
+
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Find a property you like and use the available enquiry options
-                to take the next step.
+                Find a property you like and use the available
+                enquiry options to take the next step.
               </p>
             </div>
           </div>
@@ -806,7 +949,7 @@ export default function HomePage() {
       </section>
 
       {/* Contact CTA */}
-      <section id="contact" className="px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-20" id="contact">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-800 via-emerald-700 to-green-600 px-6 py-12 text-white sm:px-10 lg:px-14 lg:py-14">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
             <div className="max-w-2xl">
@@ -814,12 +957,14 @@ export default function HomePage() {
                 <Sparkles size={14} />
                 Your next home awaits
               </div>
+
               <h2 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">
                 Ready to explore your options?
               </h2>
+
               <p className="mt-3 text-sm leading-7 text-emerald-50 sm:text-base">
-                Browse available listings and find a property that matches
-                your needs.
+                Browse available listings and find a property
+                that matches your needs.
               </p>
             </div>
 
@@ -842,10 +987,13 @@ export default function HomePage() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-700 text-white">
               <Home size={19} />
             </span>
+
             <span>
               <span className="block font-extrabold text-slate-900">
-                EstateMate <span className="text-emerald-700">AI</span>
+                EstateMate{" "}
+                <span className="text-emerald-700">AI</span>
               </span>
+
               <span className="block text-xs text-slate-500">
                 Real Estate Platform
               </span>
@@ -853,7 +1001,8 @@ export default function HomePage() {
           </Link>
 
           <p className="text-xs leading-5 text-slate-500">
-            © {new Date().getFullYear()} EstateMate AI. All rights reserved.
+            © {new Date().getFullYear()} EstateMate AI. All
+            rights reserved.
           </p>
 
           <Link
@@ -867,81 +1016,100 @@ export default function HomePage() {
       </footer>
 
       {/* Floating EstateMate AI Assistant */}
-      <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end sm:bottom-7 sm:right-7">
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end sm:bottom-6 sm:right-6">
         {isAssistantOpen && (
-          <div className="mb-4 flex w-[calc(100vw-2.5rem)] max-w-[370px] flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl shadow-emerald-950/20 animate-in slide-in-from-bottom-3 duration-300 sm:w-[370px]">
+          <section
+            aria-label="EstateMate AI chat"
+            className="mb-3 flex w-[calc(100vw-2rem)] max-w-[380px] flex-col overflow-hidden rounded-[1.5rem] border border-emerald-100/80 bg-white shadow-[0_24px_80px_-20px_rgba(6,78,59,0.38)] ring-1 ring-black/5 animate-in slide-in-from-bottom-3 duration-300 sm:mb-4 sm:w-[380px]"
+          >
             {/* Assistant header */}
-            <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-800 to-emerald-600 px-4 py-4 text-white">
-              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-                <Bot size={24} />
-                <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-emerald-700 bg-green-300" />
+            <div className="relative flex items-center gap-3 overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-600 px-4 py-4 text-white">
+              <div className="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-inner">
+                <Bot size={23} />
+
+                <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-emerald-700 bg-emerald-300" />
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h3 className="font-bold">EstateMate AI</h3>
+              <div className="relative min-w-0 flex-1">
+                <h3 className="font-bold tracking-tight">
+                  EstateMate AI
+                </h3>
+
                 <p className="mt-0.5 text-xs text-emerald-50">
                   Your personal property assistant
                 </p>
+
+                <span className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-100">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                  Ready to help
+                </span>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsAssistantOpen(false)}
                 aria-label="Close AI assistant"
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/15 hover:text-white"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/90 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70"
               >
-                <X size={20} />
+                <X size={19} />
               </button>
             </div>
 
-            {/* Reuse your existing Assistant.jsx */}
-            <div className="max-h-[65vh] min-h-[300px] overflow-y-auto bg-slate-50 sm:h-[430px]">
+            {/* Existing Assistant.jsx component */}
+            <div className="max-h-[min(68vh,560px)] min-h-[300px] overflow-y-auto overscroll-contain bg-gradient-to-b from-slate-50 to-white sm:h-[430px]">
               <AIAssistant />
             </div>
 
-            <div className="border-t border-slate-100 bg-white px-3 py-2 text-center">
-              <p className="text-[10px] text-slate-400">
-                EstateMate AI · Property guidance at your fingertips
+            <div className="border-t border-slate-100 bg-white px-3 py-2.5 text-center">
+              <p className="text-[10px] font-medium text-slate-400">
+                EstateMate AI
+                <span className="mx-1 text-emerald-500">•</span>
+                Property guidance at your fingertips
               </p>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Floating toggle button */}
+        {/* Small circular floating assistant button */}
         <button
           type="button"
-          onClick={() => setIsAssistantOpen((open) => !open)}
+          onClick={() =>
+            setIsAssistantOpen((open) => !open)
+          }
           aria-label={
-            isAssistantOpen ? "Close AI assistant" : "Ask EstateMate AI"
+            isAssistantOpen
+              ? "Close AI assistant"
+              : "Ask EstateMate AI"
           }
           aria-expanded={isAssistantOpen}
-          className="group relative flex items-center gap-3 rounded-full bg-gradient-to-r from-emerald-800 to-emerald-600 px-4 py-3.5 text-white shadow-xl shadow-emerald-900/30 transition duration-300 hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300"
+          title={
+            isAssistantOpen
+              ? "Close AI assistant"
+              : "Ask EstateMate AI"
+          }
+          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-[0_10px_30px_-8px_rgba(4,120,87,0.7)] ring-1 ring-emerald-900/10 transition duration-300 hover:-translate-y-1 hover:scale-[1.04] hover:shadow-[0_16px_36px_-8px_rgba(4,120,87,0.65)] focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95 motion-reduce:transition-none sm:h-16 sm:w-16"
         >
           {!isAssistantOpen && (
-            <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-emerald-500/30" />
+            <span className="absolute inset-0 rounded-full border border-emerald-400/60 animate-ping motion-reduce:animate-none" />
           )}
 
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+          <span className="absolute inset-[3px] rounded-full border border-white/20" />
+
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-white/20 sm:h-12 sm:w-12">
             {isAssistantOpen ? (
-              <X size={21} />
+              <X size={23} strokeWidth={2.2} />
             ) : (
               <MessageCircle
-                size={22}
+                size={25}
+                strokeWidth={2.1}
                 className="transition-transform duration-300 group-hover:scale-110"
               />
             )}
           </span>
 
-          <span className="pr-1 text-left">
-            <span className="block text-sm font-bold">
-              {isAssistantOpen ? "Close assistant" : "Ask AI"}
-            </span>
-            {!isAssistantOpen && (
-              <span className="mt-0.5 block text-[11px] text-emerald-50">
-                Find your perfect property
-              </span>
-            )}
-          </span>
+          <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-300 shadow-sm" />
         </button>
       </div>
     </div>
