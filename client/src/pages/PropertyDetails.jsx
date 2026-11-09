@@ -38,16 +38,18 @@ const formatPrice = (value) => {
   return `₹${amount.toLocaleString("en-IN")}`;
 };
 
-/* Extract property images from common API response fields. */
 const getPropertyImages = (property) => {
   if (!property) return [];
 
   const candidates = [
     ...(Array.isArray(property.images) ? property.images : []),
     ...(Array.isArray(property.photos) ? property.photos : []),
-    ...(Array.isArray(property.image_urls) ? property.image_urls : []),
-    ...(Array.isArray(property.photo_urls) ? property.photo_urls : []),
-
+    ...(Array.isArray(property.image_urls)
+      ? property.image_urls
+      : []),
+    ...(Array.isArray(property.photo_urls)
+      ? property.photo_urls
+      : []),
     property.image_url,
     property.property_image_url,
     property.main_image_url,
@@ -121,14 +123,20 @@ const getAmenities = (property) => {
 };
 
 function InfoItem({ label, value }) {
-  if (value === undefined || value === null || value === "") {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
     return null;
   }
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-4">
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-1 font-semibold text-gray-900">{value}</p>
+      <p className="mt-1 font-semibold text-gray-900">
+        {value}
+      </p>
     </div>
   );
 }
@@ -155,7 +163,86 @@ function PropertyDetails() {
   const [enquiryError, setEnquiryError] = useState("");
   const [showGallery, setShowGallery] = useState(false);
 
-  /* Fetch property details from the existing API. */
+  // EstateMate AI assistant state
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantError, setAssistantError] = useState("");
+
+  const [assistantMessages, setAssistantMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hi! Welcome to EstateMate AI. I can help you with property details, pricing, amenities, location, and buying enquiries. What would you like to know?",
+    },
+  ]);
+
+  // Send a question to the backend AI assistant.
+  const sendAssistantMessage = async (event) => {
+    event?.preventDefault();
+
+    const message = assistantInput.trim();
+
+    if (!message || assistantLoading) return;
+
+    const history = assistantMessages
+      .slice(-10)
+      .map(({ role, content }) => ({
+        role,
+        content,
+      }));
+
+    setAssistantMessages((current) => [
+      ...current,
+      {
+        role: "user",
+        content: message,
+      },
+    ]);
+
+    setAssistantInput("");
+    setAssistantError("");
+    setAssistantLoading(true);
+
+    try {
+      const response = await api.post(
+        "/api/assistant/chat",
+        {
+          message,
+          language: "en",
+          history,
+          consent: false,
+        }
+      );
+
+      const reply =
+        response.data?.reply ||
+        response.data?.message ||
+        "Sorry, I couldn't generate a response. Please try again.";
+
+      setAssistantMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: reply,
+        },
+      ]);
+    } catch (err) {
+      console.error(
+        "EstateMate AI assistant error:",
+        err.response?.data || err
+      );
+
+      setAssistantError(
+        getApiErrorMessage(err) ||
+          "The assistant is temporarily unavailable. Please try again."
+      );
+    } finally {
+      setAssistantLoading(false);
+    }
+  };
+
+  // Load property details.
   const loadProperty = useCallback(async () => {
     if (!propertyId) {
       setError("No property ID was provided.");
@@ -183,15 +270,15 @@ function PropertyDetails() {
         typeof result !== "object" ||
         Array.isArray(result)
       ) {
-        throw new Error("The server returned invalid property data.");
+        throw new Error(
+          "The server returned invalid property data."
+        );
       }
 
       setProperty(result);
 
       const propertyImages = getPropertyImages(result);
 
-      // Prefer images returned by your backend.
-      // Use sample property photos if the API has no image URLs.
       setImages(
         propertyImages.length > 0
           ? propertyImages
@@ -221,7 +308,7 @@ function PropertyDetails() {
     loadProperty();
   }, [loadProperty]);
 
-  /* Keyboard navigation for the fullscreen gallery. */
+  // Keyboard controls for the property gallery.
   useEffect(() => {
     if (!showGallery) return undefined;
 
@@ -251,7 +338,7 @@ function PropertyDetails() {
     };
   }, [showGallery, images.length]);
 
-  /* Update enquiry form fields. */
+  // Update enquiry form fields.
   const updateEnquiry = (event) => {
     const { name, value } = event.target;
 
@@ -261,9 +348,7 @@ function PropertyDetails() {
     }));
   };
 
-  /* Submit enquiry using the existing backend endpoint. */
-  
-  /* Submit a public property enquiry. */
+  // Submit a property enquiry.
   const submitEnquiry = async (event) => {
     event.preventDefault();
 
@@ -271,7 +356,9 @@ function PropertyDetails() {
     setEnquirySuccess("");
 
     if (!property) {
-      setEnquiryError("Property information is unavailable.");
+      setEnquiryError(
+        "Property information is unavailable."
+      );
       return;
     }
 
@@ -292,7 +379,10 @@ function PropertyDetails() {
 
     const phoneDigits = phone.replace(/\D/g, "");
 
-    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+    if (
+      phoneDigits.length < 7 ||
+      phoneDigits.length > 15
+    ) {
       setEnquiryError(
         "Please enter a valid phone number containing 7–15 digits."
       );
@@ -381,7 +471,6 @@ function PropertyDetails() {
     }
   };
 
-
   const title =
     property?.title ||
     property?.property_name ||
@@ -389,7 +478,9 @@ function PropertyDetails() {
     "Property details";
 
   const location = [
-    property?.locality || property?.location || property?.address,
+    property?.locality ||
+      property?.location ||
+      property?.address,
     property?.city,
     property?.state,
   ]
@@ -425,7 +516,9 @@ function PropertyDetails() {
     "Contact our team to learn more about this property, its availability, and the available amenities.";
 
   const propertyStatus =
-    property?.status || property?.availability || "Available";
+    property?.status ||
+    property?.availability ||
+    "Available";
 
   const formattedArea =
     area !== undefined && area !== null && area !== ""
@@ -437,7 +530,7 @@ function PropertyDetails() {
         }`
       : null;
 
-  /* Loading screen. */
+  // Loading screen.
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-20">
@@ -463,7 +556,7 @@ function PropertyDetails() {
     );
   }
 
-  /* Error screen. */
+  // Property error screen.
   if (error || !property) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-16">
@@ -534,7 +627,10 @@ function PropertyDetails() {
 
           <span className="mx-2">/</span>
 
-          <Link to="/properties" className="hover:text-emerald-700">
+          <Link
+            to="/properties"
+            className="hover:text-emerald-700"
+          >
             Properties
           </Link>
 
@@ -573,7 +669,10 @@ function PropertyDetails() {
           </div>
 
           <div className="shrink-0">
-            <p className="text-sm text-gray-500">Property price</p>
+            <p className="text-sm text-gray-500">
+              Property price
+            </p>
+
             <p className="mt-1 text-3xl font-extrabold text-emerald-800">
               {formatPrice(price)}
             </p>
@@ -583,7 +682,6 @@ function PropertyDetails() {
         {/* Property image gallery */}
         <section aria-label="Property photos" className="mb-8">
           <div className="grid gap-3 overflow-hidden rounded-2xl md:grid-cols-4">
-            {/* Main image */}
             <button
               type="button"
               onClick={() => setShowGallery(true)}
@@ -601,12 +699,10 @@ function PropertyDetails() {
               />
 
               <span className="absolute bottom-4 left-4 rounded-lg bg-black/65 px-3 py-2 text-sm font-semibold text-white">
-                <span aria-hidden="true">▦</span>{" "}
-                View all photos ({images.length})
+                ▦ View all photos ({images.length})
               </span>
             </button>
 
-            {/* Thumbnail images */}
             {[1, 2, 3].map((offset) => {
               const imageIndex = offset % images.length;
 
@@ -641,7 +737,7 @@ function PropertyDetails() {
             })}
           </div>
 
-          {/* Mobile thumbnail strip */}
+          {/* Mobile thumbnails */}
           {images.length > 1 && (
             <div className="mt-3 flex gap-3 overflow-x-auto pb-2 md:hidden">
               {images.map((image, index) => (
@@ -684,10 +780,22 @@ function PropertyDetails() {
               </h2>
 
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <InfoItem label="Configuration" value={bedrooms} />
-                <InfoItem label="Bathrooms" value={bathrooms} />
-                <InfoItem label="Area" value={formattedArea} />
-                <InfoItem label="Property type" value={propertyType} />
+                <InfoItem
+                  label="Configuration"
+                  value={bedrooms}
+                />
+                <InfoItem
+                  label="Bathrooms"
+                  value={bathrooms}
+                />
+                <InfoItem
+                  label="Area"
+                  value={formattedArea}
+                />
+                <InfoItem
+                  label="Property type"
+                  value={propertyType}
+                />
               </div>
 
               <div className="mt-7">
@@ -734,7 +842,9 @@ function PropertyDetails() {
                   Location
                 </h2>
 
-                <p className="mt-3 text-gray-600">{location}</p>
+                <p className="mt-3 text-gray-600">
+                  {location}
+                </p>
 
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
@@ -764,8 +874,7 @@ function PropertyDetails() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Share your details and our property team can get in touch
-                  with you.
+                  Share your details and our property team can get in touch with you.
                 </p>
               </div>
 
@@ -787,7 +896,10 @@ function PropertyDetails() {
                 </div>
               )}
 
-              <form onSubmit={submitEnquiry} className="space-y-4">
+              <form
+                onSubmit={submitEnquiry}
+                className="space-y-4"
+              >
                 <div>
                   <label
                     htmlFor="enquiry-name"
@@ -883,8 +995,7 @@ function PropertyDetails() {
                 </button>
 
                 <p className="text-center text-xs leading-5 text-gray-500">
-                  By submitting, you agree to be contacted regarding this
-                  property.
+                  By submitting, you agree to be contacted regarding this property.
                 </p>
               </form>
             </section>
@@ -901,7 +1012,7 @@ function PropertyDetails() {
         </div>
       </div>
 
-      {/* Fullscreen gallery */}
+      {/* Fullscreen image gallery */}
       {showGallery && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
@@ -965,6 +1076,212 @@ function PropertyDetails() {
           </p>
         </div>
       )}
+
+      {/* Floating AI assistant chat window */}
+      {assistantOpen && (
+        <section
+          className="fixed bottom-24 right-4 z-[60] flex h-[min(560px,70vh)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-2xl sm:right-6"
+          role="dialog"
+          aria-modal="false"
+          aria-label="EstateMate AI assistant"
+        >
+          <header className="flex items-center justify-between gap-3 bg-emerald-800 px-4 py-3 text-white">
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15"
+                aria-hidden="true"
+              >
+                ✦
+              </span>
+
+              <div className="min-w-0">
+                <h2 className="truncate font-bold">
+                  EstateMate AI
+                </h2>
+                <p className="text-xs text-emerald-100">
+                  Property assistant
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAssistantOpen(false)}
+              className="rounded-lg px-2 py-1 text-2xl leading-none text-white/90 transition hover:bg-white/10"
+              aria-label="Close assistant"
+            >
+              ×
+            </button>
+          </header>
+
+          <div
+            className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4"
+            aria-live="polite"
+          >
+            {assistantMessages.map((item, index) => (
+              <div
+                key={`${item.role}-${index}`}
+                className={`flex ${
+                  item.role === "user"
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-6 ${
+                    item.role === "user"
+                      ? "rounded-br-md bg-emerald-700 text-white"
+                      : "rounded-bl-md border border-gray-100 bg-white text-gray-700 shadow-sm"
+                  }`}
+                >
+                  {item.content}
+                </div>
+              </div>
+            ))}
+
+            {assistantLoading && (
+              <div className="rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
+                EstateMate AI is thinking...
+              </div>
+            )}
+
+            {assistantError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-700"
+              >
+                {assistantError}
+
+                <button
+                  type="button"
+                  onClick={() => setAssistantError("")}
+                  className="ml-2 font-bold underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+          </div>
+
+          <form
+            onSubmit={sendAssistantMessage}
+            className="border-t border-gray-100 bg-white p-3"
+          >
+            <label
+              htmlFor="estate-property-assistant-input"
+              className="sr-only"
+            >
+              Ask EstateMate AI a question
+            </label>
+
+            <div className="flex items-end gap-2">
+              <textarea
+                id="estate-property-assistant-input"
+                value={assistantInput}
+                onChange={(event) =>
+                  setAssistantInput(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                  ) {
+                    event.preventDefault();
+                    sendAssistantMessage(event);
+                  }
+                }}
+                placeholder="Ask about this property..."
+                rows={1}
+                maxLength={2000}
+                className="max-h-24 min-h-11 flex-1 resize-y rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              />
+
+              <button
+                type="submit"
+                disabled={
+                  assistantLoading || !assistantInput.trim()
+                }
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Send message"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m22 2-7 20-4-9-9-4Z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M22 2 11 13"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mt-2 text-[11px] text-gray-400">
+              Avoid sharing sensitive personal information.
+            </p>
+          </form>
+        </section>
+      )}
+
+      {/* Floating assistant icon */}
+      <button
+        type="button"
+        onClick={() => setAssistantOpen((open) => !open)}
+        className="fixed bottom-5 right-5 z-[61] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl ring-4 ring-white transition hover:scale-105 hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200 sm:bottom-6 sm:right-6"
+        aria-label={
+          assistantOpen
+            ? "Close EstateMate AI assistant"
+            : "Open EstateMate AI assistant"
+        }
+        aria-expanded={assistantOpen}
+        title="Ask EstateMate AI"
+      >
+        {assistantOpen ? (
+          <svg
+            viewBox="0 0 24 24"
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              d="m6 6 12 12M18 6 6 18"
+            />
+          </svg>
+        ) : (
+          <svg
+            viewBox="0 0 24 24"
+            className="h-7 w-7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5v2a2 2 0 0 0 2 2H8v-5H6.5a5.5 5.5 0 0 1 11 0H16v5h1.5a2 2 0 0 0 2-2v-2A7.5 7.5 0 0 0 12 3.5Z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8 17c1 .9 2.3 1.4 4 1.4s3-.5 4-1.4"
+            />
+          </svg>
+        )}
+      </button>
     </main>
   );
 }
