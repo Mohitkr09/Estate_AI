@@ -1,5 +1,5 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   searchProperties,
@@ -29,6 +29,20 @@ const AMENITY_OPTIONS = [
   "Security",
   "Clubhouse",
 ];
+
+/*
+ * Sample property photos.
+ * Backend-provided image URLs take priority over these defaults.
+ */
+const DEFAULT_PROPERTY_IMAGES = [
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1200&q=80",
+];
+
+const FALLBACK_IMAGE =
+  "https://placehold.co/800x500/e8f0e9/47634d?text=Property+Image";
 
 function formatPrice(price) {
   const value = Number(price);
@@ -101,7 +115,148 @@ function getStatusLabel(property, isDevelopmentMode) {
   return "Verified";
 }
 
+/*
+ * Extract an image URL from common backend field names.
+ *
+ * Supported fields include:
+ * image_url, image, photo_url, thumbnail_url, cover_image,
+ * primary_image, property_image_url, main_image_url,
+ * featured_image, images, photos, and image_urls.
+ *
+ * Array entries may be URL strings or objects containing
+ * url, image_url, src, or photo_url.
+ */
+function getPropertyImage(property) {
+  const candidates = [
+    property.image_url,
+    property.image,
+    property.photo_url,
+    property.thumbnail_url,
+    property.cover_image,
+    property.primary_image,
+    property.property_image_url,
+    property.main_image_url,
+    property.featured_image,
+
+    ...(Array.isArray(property.images)
+      ? property.images.map((item) =>
+          typeof item === "string"
+            ? item
+            : item?.url ||
+              item?.image_url ||
+              item?.src ||
+              item?.photo_url
+        )
+      : []),
+
+    ...(Array.isArray(property.photos)
+      ? property.photos.map((item) =>
+          typeof item === "string"
+            ? item
+            : item?.url ||
+              item?.image_url ||
+              item?.src ||
+              item?.photo_url
+        )
+      : []),
+
+    ...(Array.isArray(property.image_urls)
+      ? property.image_urls
+      : []),
+
+    ...(Array.isArray(property.photo_urls)
+      ? property.photo_urls
+      : []),
+  ];
+
+  return (
+    candidates.find(
+      (candidate) =>
+        typeof candidate === "string" &&
+        candidate.trim().length > 0
+    )?.trim() || ""
+  );
+}
+
+/*
+ * Property card image.
+ *
+ * Uses the actual API image if available.
+ * If there is no image URL, uses a sample photo.
+ * If the image fails to load, displays the fallback image.
+ */
+function PropertyCardImage({
+  property,
+  projectName,
+  status,
+  bhk,
+  isDevelopmentMode,
+  imageIndex = 0,
+}) {
+  const propertyImage = getPropertyImage(property);
+
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const defaultImage =
+    DEFAULT_PROPERTY_IMAGES[
+      imageIndex % DEFAULT_PROPERTY_IMAGES.length
+    ];
+
+  const imageUrl = propertyImage || defaultImage;
+
+  return (
+    <div className="relative h-56 overflow-hidden bg-gradient-to-br from-emerald-100 via-teal-50 to-slate-100">
+      {!imageFailed ? (
+        <img
+          src={imageUrl}
+          alt={`${projectName} property`}
+          loading="lazy"
+          onError={(event) => {
+            const currentImage = event.currentTarget;
+
+            if (currentImage.src !== FALLBACK_IMAGE) {
+              currentImage.onerror = null;
+              currentImage.src = FALLBACK_IMAGE;
+            }
+
+            setImageFailed(true);
+          }}
+          className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-emerald-900">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white bg-white/80 text-4xl shadow-sm">
+            ⌂
+          </div>
+
+          <span className="text-xs font-semibold text-emerald-900/70">
+            Property image unavailable
+          </span>
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/40 to-transparent" />
+
+      <span
+        className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${
+          isDevelopmentMode
+            ? "bg-amber-100 text-amber-900"
+            : "bg-emerald-100 text-emerald-900"
+        }`}
+      >
+        {status}
+      </span>
+
+      <span className="absolute right-4 top-4 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-bold text-white">
+        {bhk || "Apartment"}
+      </span>
+    </div>
+  );
+}
+
 export default function Properties() {
+  const navigate = useNavigate();
+
   const [mode, setMode] = useState("public");
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
@@ -313,27 +468,15 @@ export default function Properties() {
   };
 
   const handleEnquiry = (property) => {
-    const projectName = property.project_name || "Residential property";
+    const propertyId = getPropertyId(property);
 
-    const body = [
-      "Hello EstateMate AI Sales Team,",
-      "",
-      "I am interested in the following property:",
-      "",
-      `Project: ${projectName}`,
-      `Unit: ${property.unit_number || "Not specified"}`,
-      `Configuration: ${property.bhk || "Not specified"}`,
-      `Price: ${formatFullPrice(property.price_inr)}`,
-      `Location: ${getPropertyLocation(property)}`,
-      `Property ID: ${getPropertyId(property) || "Not available"}`,
-      "",
-      "Please contact me with more information.",
-    ].join("\n");
+    if (!propertyId) {
+      setError("Unable to open this property because its ID is missing.");
+      return;
+    }
 
-    window.location.href =
-      `mailto:?subject=${encodeURIComponent(
-        `Property enquiry - ${projectName}`
-      )}&body=${encodeURIComponent(body)}`;
+    // Open the property details page instead of an empty mailto link.
+    navigate(`/properties/${encodeURIComponent(propertyId)}`);
   };
 
   const shortlistedProperties = useMemo(
@@ -402,9 +545,11 @@ export default function Properties() {
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
                 Listing source
               </p>
+
               <h2 className="mt-2 text-xl font-bold text-slate-900">
                 Choose property inventory
               </h2>
+
               <p className="mt-1 text-sm leading-6 text-slate-500">
                 Public listings show verified inventory. Development samples
                 are fictional records for local testing.
@@ -447,6 +592,7 @@ export default function Properties() {
               <p className="font-bold text-amber-900">
                 Development preview — fictional listings
               </p>
+
               <p className="mt-1 text-sm leading-6 text-amber-800">
                 These records are for testing only. Their pending verification
                 status is preserved. Do not use them as confirmed real estate
@@ -463,6 +609,7 @@ export default function Properties() {
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
                 Property search
               </p>
+
               <h2 className="mt-2 text-2xl font-bold text-slate-900">
                 Find your ideal property
               </h2>
@@ -483,6 +630,7 @@ export default function Properties() {
                 <span className="mb-2 block text-sm font-semibold">
                   Apartment type
                 </span>
+
                 <select
                   name="bhk"
                   value={filters.bhk}
@@ -490,6 +638,7 @@ export default function Properties() {
                   className="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-emerald-600 focus:outline-none"
                 >
                   <option value="">Any configuration</option>
+
                   {BHK_OPTIONS.map((bhk) => (
                     <option key={bhk} value={bhk}>
                       {bhk}
@@ -502,6 +651,7 @@ export default function Properties() {
                 <span className="mb-2 block text-sm font-semibold">
                   Minimum budget (₹)
                 </span>
+
                 <input
                   type="number"
                   name="min_budget_inr"
@@ -519,6 +669,7 @@ export default function Properties() {
                 <span className="mb-2 block text-sm font-semibold">
                   Maximum budget (₹)
                 </span>
+
                 <input
                   type="number"
                   name="max_budget_inr"
@@ -536,6 +687,7 @@ export default function Properties() {
                 <span className="mb-2 block text-sm font-semibold">
                   City or location
                 </span>
+
                 <input
                   type="text"
                   name="location"
@@ -551,6 +703,7 @@ export default function Properties() {
                 <span className="mb-2 block text-sm font-semibold">
                   Sort by price
                 </span>
+
                 <select
                   name="sort_by"
                   value={filters.sort_by}
@@ -568,6 +721,7 @@ export default function Properties() {
                 <legend className="text-sm font-semibold">
                   Preferred amenities
                 </legend>
+
                 <div className="mt-3 flex flex-wrap gap-3">
                   {AMENITY_OPTIONS.map((amenity) => (
                     <label
@@ -580,6 +734,7 @@ export default function Properties() {
                         onChange={() => toggleAmenity(amenity)}
                         className="accent-emerald-800"
                       />
+
                       {amenity}
                     </label>
                   ))}
@@ -618,7 +773,10 @@ export default function Properties() {
             role="alert"
             className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4"
           >
-            <p className="font-bold text-red-800">Unable to load properties</p>
+            <p className="font-bold text-red-800">
+              Unable to load properties
+            </p>
+
             <p className="mt-1 text-sm text-red-700">{error}</p>
           </div>
         )}
@@ -637,10 +795,12 @@ export default function Properties() {
             <h2 className="font-bold text-emerald-950">
               AI recommendation result
             </h2>
+
             <p className="mt-2 text-sm leading-6 text-emerald-900">
               {recommendations.message ||
                 "Your recommendation request was processed. Review the verified property listings below."}
             </p>
+
             <p className="mt-2 text-xs leading-5 text-emerald-800">
               AI output does not independently verify a property. The public
               listing results are fetched from the verified inventory API.
@@ -657,11 +817,13 @@ export default function Properties() {
                   ? "Development inventory"
                   : "Verified inventory"}
               </p>
+
               <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
                 {mode === "development"
                   ? "Sample properties"
                   : "Discover properties"}
               </h2>
+
               <p className="mt-2 text-sm text-slate-500">
                 {mode === "development"
                   ? "Fictional test records. Pending listings are not verified offers."
@@ -681,7 +843,9 @@ export default function Properties() {
           {loading || recommendationLoading ? (
             <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-800" />
+
               <h3 className="mt-5 font-bold">Finding properties</h3>
+
               <p className="mt-2 text-sm text-slate-500">
                 Please wait while the inventory is loaded.
               </p>
@@ -689,16 +853,19 @@ export default function Properties() {
           ) : properties.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
               <div className="text-4xl text-emerald-800">⌂</div>
+
               <h3 className="mt-5 text-xl font-bold text-slate-900">
                 {hasSearched
                   ? "No matching properties found"
                   : "Explore properties"}
               </h3>
+
               <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500">
                 Try another configuration, location, or budget. Public mode
                 only displays verified, available inventory; development mode
                 queries the separate development endpoint.
               </p>
+
               <button
                 type="button"
                 onClick={handleReset}
@@ -713,37 +880,31 @@ export default function Properties() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {displayedProperties.map((property, index) => {
                   const id = getPropertyId(property);
+
                   const projectName =
                     property.project_name || "Residential property";
 
                   const isShortlisted = shortlistedIds.includes(id);
                   const isComparing = comparisonIds.includes(id);
-                  const status = getStatusLabel(property, mode === "development");
+
+                  const status = getStatusLabel(
+                    property,
+                    mode === "development"
+                  );
 
                   return (
                     <article
                       key={id || `${projectName}-${index}`}
                       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                     >
-                      <div className="relative flex h-44 items-center justify-center bg-gradient-to-br from-emerald-100 via-teal-50 to-slate-100">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white bg-white/80 text-4xl text-emerald-800 shadow-sm">
-                          ⌂
-                        </div>
-
-                        <span
-                          className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${
-                            mode === "development"
-                              ? "bg-amber-100 text-amber-900"
-                              : "bg-emerald-100 text-emerald-900"
-                          }`}
-                        >
-                          {status}
-                        </span>
-
-                        <span className="absolute right-4 top-4 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-bold text-white">
-                          {property.bhk || "Apartment"}
-                        </span>
-                      </div>
+                      <PropertyCardImage
+                        property={property}
+                        projectName={projectName}
+                        status={status}
+                        bhk={property.bhk}
+                        isDevelopmentMode={mode === "development"}
+                        imageIndex={index}
+                      />
 
                       <div className="p-5">
                         <h3 className="text-lg font-bold text-slate-900">
@@ -757,6 +918,7 @@ export default function Properties() {
                         <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Listed price
                         </p>
+
                         <p className="mt-1 text-3xl font-extrabold text-emerald-800">
                           {formatPrice(property.price_inr)}
                         </p>
@@ -764,26 +926,33 @@ export default function Properties() {
                         <div className="my-5 grid grid-cols-2 gap-4 border-y border-slate-100 py-4">
                           <div>
                             <p className="text-xs text-slate-400">Area</p>
+
                             <p className="mt-1 text-sm font-semibold">
                               {formatArea(property.area_sqft)}
                             </p>
                           </div>
+
                           <div>
                             <p className="text-xs text-slate-400">Unit</p>
+
                             <p className="mt-1 text-sm font-semibold">
                               {property.unit_number || "Not specified"}
                             </p>
                           </div>
+
                           <div>
                             <p className="text-xs text-slate-400">Floor</p>
+
                             <p className="mt-1 text-sm font-semibold">
                               {property.floor_number ?? "Not specified"}
                             </p>
                           </div>
+
                           <div>
                             <p className="text-xs text-slate-400">
                               Availability
                             </p>
+
                             <p className="mt-1 text-sm font-semibold capitalize">
                               {property.availability || "Not specified"}
                             </p>
@@ -796,15 +965,18 @@ export default function Properties() {
                               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                                 Amenities
                               </p>
+
                               <div className="flex flex-wrap gap-2">
-                                {property.amenities.slice(0, 5).map((amenity) => (
-                                  <span
-                                    key={amenity}
-                                    className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
-                                  >
-                                    {amenity}
-                                  </span>
-                                ))}
+                                {property.amenities
+                                  .slice(0, 5)
+                                  .map((amenity) => (
+                                    <span
+                                      key={amenity}
+                                      className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
+                                    >
+                                      {amenity}
+                                    </span>
+                                  ))}
                               </div>
                             </div>
                           )}
@@ -813,14 +985,18 @@ export default function Properties() {
                           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
                             <p>
                               <strong>Project verification:</strong>{" "}
-                              {property.project_verification_status || "pending"}
+                              {property.project_verification_status ||
+                                "pending"}
                             </p>
+
                             <p>
                               <strong>Property verification:</strong>{" "}
                               {property.verification_status || "pending"}
                             </p>
+
                             <p className="mt-1">
-                              Fictional development sample — not a verified offer.
+                              Fictional development sample — not a verified
+                              offer.
                             </p>
                           </div>
                         )}
@@ -841,7 +1017,9 @@ export default function Properties() {
                           <button
                             type="button"
                             onClick={() => toggleComparison(property)}
-                            disabled={!isComparing && comparisonIds.length >= 3}
+                            disabled={
+                              !isComparing && comparisonIds.length >= 3
+                            }
                             className={`rounded-xl border px-3 py-2.5 text-sm font-bold disabled:opacity-40 ${
                               isComparing
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -871,6 +1049,7 @@ export default function Properties() {
                             <summary className="cursor-pointer text-sm font-semibold text-emerald-800">
                               View address
                             </summary>
+
                             <p className="mt-2 break-words text-sm leading-6 text-slate-600">
                               {property.address}
                             </p>
@@ -886,7 +1065,10 @@ export default function Properties() {
               {comparisonProperties.length > 0 && (
                 <section className="mt-8 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-5">
-                    <h2 className="text-xl font-bold">Compare properties</h2>
+                    <h2 className="text-xl font-bold">
+                      Compare properties
+                    </h2>
+
                     <button
                       type="button"
                       onClick={() => setComparisonIds([])}
@@ -900,6 +1082,7 @@ export default function Properties() {
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="p-4">Feature</th>
+
                         {comparisonProperties.map((property) => (
                           <th
                             key={getPropertyId(property)}
@@ -910,6 +1093,7 @@ export default function Properties() {
                         ))}
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-slate-100">
                       {[
                         ["Price", (p) => formatPrice(p.price_inr)],
@@ -919,13 +1103,18 @@ export default function Properties() {
                         ["Unit", (p) => p.unit_number || "Not specified"],
                         [
                           "Verification",
-                          (p) => getStatusLabel(p, mode === "development"),
+                          (p) =>
+                            getStatusLabel(
+                              p,
+                              mode === "development"
+                            ),
                         ],
                       ].map(([label, value]) => (
                         <tr key={label}>
                           <th className="bg-slate-50 p-4 font-medium">
                             {label}
                           </th>
+
                           {comparisonProperties.map((property) => (
                             <td
                               key={getPropertyId(property)}
@@ -995,6 +1184,7 @@ export default function Properties() {
             <h2 className="text-lg font-bold">
               Your shortlist ({shortlistedProperties.length})
             </h2>
+
             <div className="mt-3 flex flex-wrap gap-2">
               {shortlistedProperties.map((property) => (
                 <span
@@ -1006,6 +1196,7 @@ export default function Properties() {
                 </span>
               ))}
             </div>
+
             <p className="mt-3 text-xs text-slate-500">
               The shortlist shows properties currently loaded in this search.
             </p>

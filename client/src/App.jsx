@@ -6,9 +6,11 @@ import {
   Route,
   Navigate,
   Outlet,
+  useLocation,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
+import HomePage from "./pages/HomePage";
 import AIAssistant from "./pages/Assistant";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
@@ -23,74 +25,152 @@ import {
 } from "./services/api";
 
 function ProtectedRoute() {
-  const token = getStoredToken();
-  const user = getStoredUser();
+  const location = useLocation();
 
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
+  let token = null;
+  let user = null;
+
+  try {
+    token = getStoredToken();
+    user = getStoredUser();
+  } catch (error) {
+    console.error(
+      "Unable to read authentication data:",
+      error
+    );
+  }
+
+  const isAuthenticated = Boolean(token && user);
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: location,
+        }}
+      />
+    );
   }
 
   return <Outlet />;
 }
 
+/**
+ * Application routes.
+ *
+ * Public:
+ *   /
+ *   /properties
+ *   /properties/:propertyId
+ *   /login
+ *
+ * Private CRM:
+ *   /overview
+ *   /leads
+ *   /handoffs
+ *   /site-visits
+ *   /properties/manage
+ *   /ai-assistant
+ */
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* ========================================
+            PUBLIC WEBSITE
+        ======================================== */}
+
+        <Route
+          path="/"
+          element={<HomePage />}
+        />
+
+        {/* Public property listings */}
+        <Route
+          path="/properties"
+          element={<Properties />}
+        />
+
+        {/* Public property details */}
+        <Route
+          path="/properties/:propertyId"
+          element={<PropertyDetails />}
+        />
+
+        {/* Login page */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        {/* ========================================
+            PRIVATE CRM
+        ======================================== */}
 
         <Route element={<ProtectedRoute />}>
-          <Route
-            path="/"
-            element={<Navigate to="/overview" replace />}
-          />
-
+          {/* Redirect dashboard to the CRM overview */}
           <Route
             path="/dashboard"
-            element={<Navigate to="/overview" replace />}
+            element={
+              <Navigate
+                to="/overview"
+                replace
+              />
+            }
           />
 
+          {/* CRM overview */}
           <Route
             path="/overview"
             element={<Dashboard />}
           />
 
-          {/* Render the new lead-management page */}
+          {/* Lead management */}
           <Route
             path="/leads"
             element={<Leads />}
           />
 
+          {/* Handoff management */}
           <Route
             path="/handoffs"
             element={<Handoffs />}
           />
 
+          {/* Site visit management */}
           <Route
             path="/site-visits"
             element={<SiteVisits />}
           />
 
+          {/* Private property management */}
           <Route
-            path="/properties"
+            path="/properties/manage"
             element={<Properties />}
           />
 
-          <Route
-            path="/properties/:propertyId"
-            element={<PropertyDetails />}
-          />
-
+          {/* AI assistant */}
           <Route
             path="/ai-assistant"
             element={<AIAssistant />}
           />
-
-          <Route
-            path="*"
-            element={<Navigate to="/overview" replace />}
-          />
         </Route>
+
+        {/* ========================================
+            FALLBACK
+        ======================================== */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
